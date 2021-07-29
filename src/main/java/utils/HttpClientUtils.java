@@ -60,7 +60,6 @@ public class HttpClientUtils {
 
     /**
      * 发送get请求；带请求头和请求参数
-     * 
      * @param url 请求地址
      * @param headers 请求头集合
      * @param params 请求参数集合
@@ -180,7 +179,6 @@ public class HttpClientUtils {
      * 发送put请求；不带请求参数
      * 
      * @param url 请求地址
-     * @param params 参数集合
      * @return
      * @throws Exception
      */
@@ -217,7 +215,6 @@ public class HttpClientUtils {
      * 发送delete请求；不带请求参数
      * 
      * @param url 请求地址
-     * @param params 参数集合
      * @return
      * @throws Exception
      */

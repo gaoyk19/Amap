@@ -35,7 +35,8 @@ import utils.JPAUtil;
 
 public class GetNav implements Runnable{
 private java.sql.Timestamp insert_time;
-	private static List<Map> links; // 需要导航的OD对
+
+	private static List<Map> links; // 需要导航的OD对(起点/终点)
 	private int linkIndex = 0; // branch11
 
 	public GetNav() {
@@ -46,7 +47,7 @@ private java.sql.Timestamp insert_time;
 	public static void main(String[] args) throws Exception {
 		GetNav gdrun = new GetNav();
 
-		int choose = 2;
+		int choose = 1;
 
 		if (choose == 1) // 单线程
 			gdrun.runSingle();
@@ -74,12 +75,13 @@ private java.sql.Timestamp insert_time;
 					break;
 				}
 			}
-			// 发送http请求
+			// 发送http请求,将得到的消息实体内容存放在 content 中
 			String content = getHttpReq(link);
 			if (content == null)
 				continue;
 			link.put("content", content);
-			// 解析返回的内容
+
+			// 解析（ http响应的内容 ），并将结果存在GdNavLink_hibernate（自己的类对象）类型的数组中
 			List<GdNavLink_hibernate> parseList = null;
 			try {
 				parseList = parseJson(link);
@@ -88,12 +90,13 @@ private java.sql.Timestamp insert_time;
 			}
 			if (parseList == null)
 				continue;
-			// 保存step和tmc
+
+			// 保存step和tmc；
 			for (GdNavLink_hibernate gdNavLink : parseList) {
-				session.save(gdNavLink);
+				session.save(gdNavLink);//将一个临时对象转化为持久对象，也就是将一个新的实体保存到数据库中
 			}
 
-			if (++linkCnt % 100 == 0) { // 每N次访问刷新并写入数据库
+			if (++linkCnt % 100 == 0) { // 每N次访问 刷新并写入数据库
 				session.flush();
 				session.clear();
 				tx.commit();
@@ -178,9 +181,10 @@ private java.sql.Timestamp insert_time;
 		return linkList;
 	}
 
-	// 2发起请求
+	// 2- 发起请求
 	public String getHttpReq(Map<String, Object> map) {
 		String url = "https://restapi.amap.com/v3/direction/driving";
+		//请求参数含义见上面高德地图的url地址
 		Map<String, String> params = new HashMap<String, String>();
 		params.put("key", "你的key"); 
 		params.put("extensions", "all");
@@ -205,7 +209,11 @@ private java.sql.Timestamp insert_time;
 		return result.getContent();
 	}
 
-	// 3json解析返回值
+	// 3- json解析返回值
+	/* 返回结果参数 见上面高德地图的 URL 地址
+	 * 其中：steps参数是指 "导航路段"step;
+	 * 其中step中tmcs为 "驾车导航的详细信息"，包括distance（路段长度）、status（道路的交通情况）、polyline(此段路的轨迹)
+	 */
 	public List<GdNavLink_hibernate> parseJson(Map<String, Object> linkContent) throws ParseException {
 		JsonParser parser = new JsonParser();
 		JsonObject obj = (JsonObject) parser.parse((String) linkContent.get("content"));
@@ -218,7 +226,9 @@ private java.sql.Timestamp insert_time;
 		if (obj.get("count") != null) {
 			count = obj.get("count").getAsInt();
 		}
+
 		String info = obj.get("info").getAsString();
+
 		// 无效导航
 		if (status == 0 || count == 0) {
 			System.out.println("response none..; info:" + info);
@@ -227,11 +237,17 @@ private java.sql.Timestamp insert_time;
 		// 有效导航,开始处理
 		String orientation, road, action, polyline, linkStatus;
 		Long tmcid, distance, duration,speed;
+
 		GdNavLink_hibernate singleLink;
 		List<GdNavLink_hibernate> list = new ArrayList<GdNavLink_hibernate>();
 
 		JsonArray paths = obj.get("route").getAsJsonObject().get("paths").getAsJsonArray();
 		// System.out.print("paths:" + paths.size() + "; ");
+
+		//TODO 在step中可以单独获得step自己的duration 吗？ 难道是通过添加途径点的方式？
+		// 不知道是使用的 "驾车路径规划"还是 "未来路径规划" ？
+		// 距
+
 		// 逐一处理paths (paths即为多个方案, 每个方案中有多个steps)
 		for (int pid = 0; pid < paths.size(); pid++) {
 			List<GdNavLink_hibernate> stepList = new ArrayList<GdNavLink_hibernate>();
@@ -239,16 +255,16 @@ private java.sql.Timestamp insert_time;
 			// System.out.print("steps:" + steps.size() + "; tmcs:");
 			// 逐一处理steps
 			for (int i = 0; i < steps.size(); i++) {
-				orientation = "";
-				road = "";
-				action = "";
+				orientation = ""; //方向
+				road = ""; //道路名称
+				action = ""; //导航主要动作
 				linkStatus = "";
 				polyline = "";
 				Geometry geom = null;
 				singleLink = null;
 				tmcid = 0L;
 				distance = -1L;
-				duration = -1L;
+				duration = -1L;//预计通行时间
 				speed = -1L;
 
 				JsonObject step = steps.get(i).getAsJsonObject();
@@ -265,7 +281,7 @@ private java.sql.Timestamp insert_time;
 				if (step.get("distance") != null && step.get("duration") != null) {
 					distance = step.get("distance").getAsLong();
 					duration = step.get("duration").getAsLong();
-					speed = new Double(distance*3.6/duration).longValue();
+					speed = new Double(distance*3.6/duration).longValue();  //计算车速
 				}
 				if (step.get("polyline") != null) {
 					polyline = step.get("polyline").getAsString();
@@ -279,11 +295,10 @@ private java.sql.Timestamp insert_time;
 				list.add(singleLink);
 				stepList.add(singleLink);
 
-				// 循环处理tmcs
+				// 循环处理tmcs(驾车导航详细信息),主要包括：distance、status(道路状况)、polylines(路的轨迹)
 				JsonArray tmcs = step.get("tmcs").getAsJsonArray();
 				// System.out.print(tmcs.size() + ",");
 				for (int j = 0; j < tmcs.size(); j++) {
-					
 					// 第一个step的第一个tmc忽略
 					if (i == 0 && j == 0) {
 						continue;
