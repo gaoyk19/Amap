@@ -245,8 +245,7 @@ private java.sql.Timestamp insert_time;
 		// System.out.print("paths:" + paths.size() + "; ");
 
 		//TODO 在step中可以单独获得step自己的duration 吗？ 难道是通过添加途径点的方式？
-		// 不知道是使用的 "驾车路径规划"还是 "未来路径规划" ？
-		// 距
+		// 不知道是使用的 "驾车路径规划"还是 "未来路径规划" ？应该是"驾车路径规划"
 
 		// 逐一处理paths (paths即为多个方案, 每个方案中有多个steps)
 		for (int pid = 0; pid < paths.size(); pid++) {

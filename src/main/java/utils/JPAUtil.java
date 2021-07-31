@@ -20,7 +20,7 @@ public class JPAUtil {
         try {
             //SPATIAL-JPA可以在resources/META-INF/persistence.xml文件的第7行可以看到
             //参考链接：https://www.kejisen.com/article/161331290.html
-            emFactory = Persistence.createEntityManagerFactory("SPATIAL-JPA");
+            emFactory = Persistence.createEntityManagerFactory("SPATIAL-JPA"); //defined in a persistence.xml
         }catch(Throwable ex){
             System.err.println("Cannot create EntityManagerFactory.");
             throw new ExceptionInInitializerError(ex);

@@ -12,25 +12,38 @@
 		<!-- 在这里放入需要托管的entity -->
 		<class>entity.GdNavLink_hibernate</class>
 		<class>entity.GdNavLinkNJ</class>
+		<class>entity.GdNaviLinkTest</class>
+		<class>entity.start_end</class>
 		<exclude-unlisted-classes>true</exclude-unlisted-classes>
 
 		<properties>
+			<!--自己添加的，将在运行时，在后台打印hibernate生成的sql语句-->
+<!--			<property name="hibernate.show_sql" value="true"/>-->
 			<!-- 数据库驱动 -->
 			<property name="hibernate.connection.driver_class"
-				value="oracle.jdbc.driver.OracleDriver" />
-			<!-- 数据库url -->
+			          value="com.mysql.cj.jdbc.Driver"/>
+<!--			value="com.mysql.jdbc.Driver"/>-->
+<!--				value="oracle.jdbc.driver.OracleDriver" />-->
+
+			<!-- 数据库 默认端口 与 url,里面的jpa331是数据库的名字，需要自己建立 -->
 			<property name="hibernate.connection.url"
-				value="jdbc:oracle:thin:@数据库IP地址:端口号:实例名称" />
+					  value="jdbc:mysql://localhost:3306/jpa331"/>
+<!--				value="jdbc:oracle:thin:@数据库IP地址:端口号:实例名称" />-->
 			<!-- 数据库连接用户名 -->
 			<property name="hibernate.connection.username"
-				value="你的登录账户" />
+					  value="root" />
+<!--				value="你的登录账户" />-->
 			<!-- 数据库连接密码 -->
-			<property name="hibernate.connection.password" value="你的登录密码" />
+			<property name="hibernate.connection.password" value="123456789" />
+
 			<!-- 数据库方言 -->
-			<property name="hibernate.dialect"
-				value="org.hibernate.spatial.dialect.oracle.OracleSpatial10gDialect" />
-			<!-- 自动建表 -->
+<!--			<property name="spring.jpa.database" value="spring.jpa.database" />-->
+			<property name="hibernate.dialect" value="org.hibernate.dialect.MySQLDialect" />
+
+			<!-- 自动建表(含义应该是允许hibernate在运行时，创建表) -->
+<!--			<property name="spring.jpa.hibernate.ddl-auto" value="create" />-->
 			<property name="hibernate.hbm2ddl.auto" value="update" />
+
 		</properties>
 
 	</persistence-unit>

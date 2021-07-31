@@ -20,6 +20,7 @@ import com.vividsolutions.jts.io.ParseException;
 import com.vividsolutions.jts.io.WKTReader;
 
 import entity.GdNavLinkNJ;
+import org.omg.Messaging.SYNC_WITH_TRANSPORT;
 import utils.HttpClientResult;
 import utils.HttpClientUtils;
 import utils.JPAUtil;
@@ -30,13 +31,17 @@ public class GetNavNJ {
 	private Long batch;
 	private List<GdNavLinkNJ> tlist = new ArrayList<GdNavLinkNJ>();
 
+	private static Long temp=0L;
+
 	public GetNavNJ() {
 		java.util.Date sysDate = new java.util.Date();
 		insert_time = new java.sql.Timestamp(sysDate.getTime());
+
 	};
 
 	public static void main(String[] args) throws Exception {
 		GetNavNJ gdrun = new GetNavNJ();
+
 		gdrun.runSingle();
 		System.out.println("main end..");
 	}
@@ -48,8 +53,10 @@ public class GetNavNJ {
 
 		// 获取所有request
 		links = getLinks();
+
 		// 获取该次导航的batch
-		batch = getBatch();
+//		batch = getBatch();
+		batch=temp++;
 
 		// 逐条处理: 发送请求;解析
 		for (int i = 0; i < links.size(); i++) {
@@ -57,10 +64,14 @@ public class GetNavNJ {
 			System.out.println("get response:" + (i + 1) + "/" + links.size());
 			// 发送http请求
 			String content = getHttpReq(link);
-			if (content == null)
+			System.out.println("content: "+content);
+			if (content == null){
+				System.out.println((i + 1)+"起点/终点请求导航服务引擎，得到的结果为null! ");
 				continue;
+			}
 			link.put("content", content);
-			// 解析返回的内容
+
+			// 解析返回的 content内容
 			parseJson(link);
 		}
 		
@@ -75,7 +86,7 @@ public class GetNavNJ {
 			session.save(gdNavLink);
 		}
 
-		session.flush();
+		session.flush();//这里出现了问题
 		session.clear();
 		tx.commit();
 		session.close();
@@ -109,7 +120,7 @@ public class GetNavNJ {
 	public String getHttpReq(Map<String, Object> map) {
 		String url = "https://restapi.amap.com/v3/direction/driving";
 		Map<String, String> params = new HashMap<String, String>();
-		params.put("key", "你的key"); 
+		params.put("key", "139a3f9066d939b983dc4a8dd6487578"); //这里需要修改申请得到的key
 		params.put("extensions", "all");
 		params.put("strategy", "2"); // 10默认多路径;2单路径,距离最短
 		params.put("origin", (String) map.get("S"));
@@ -134,6 +145,7 @@ public class GetNavNJ {
 		return result.getContent();
 	}
 
+
 	// 3json解析返回值
 	public void parseJson(Map<String, Object> linkContent) throws ParseException {
 		JsonParser parser = new JsonParser();
@@ -150,7 +162,7 @@ public class GetNavNJ {
 		String info = obj.get("info").getAsString();
 		// 无效导航
 		if (status == 0 || count == 0) {
-			System.out.println("response none..; info:" + info);
+			System.out.println("请求导航服务引擎失败:" + info);
 			return;
 		}
 		// 有效导航,开始处理
@@ -210,12 +222,13 @@ public class GetNavNJ {
 
 				// 循环处理tmcs
 				JsonArray tmcs = step.get("tmcs").getAsJsonArray();
-				// System.out.print(tmcs.size() + ",");
 				for (int j = 0; j < tmcs.size(); j++) {
 					/*
 					 * // 第一个step的第一个tmc忽略 if (i == 0 && j == 0) { continue; } // 最后一个step的最后一个tmc忽略
 					 * if (i == (steps.size() - 1) && j == (tmcs.size() - 1)) { continue; }
 					 */
+
+					//tmc 中主要是三个成员：distance、status、polyline
 					tmcid++;
 					distance = -1L;
 					linkStatus = "";
@@ -231,14 +244,15 @@ public class GetNavNJ {
 					if (tmc.get("status") != null) {
 						linkStatus = tmc.get("status").getAsString();
 					}
-					if (tmc.get("polyline") != null) {
-						polyline = tmc.get("polyline").getAsString();
-						polyline = polyline.replace(",", " ");
-						polyline = polyline.replace(";", ",");
-						WKTReader fromText = new WKTReader();
-						geom = fromText.read("LINESTRING(" + polyline + ")");
-						geom.setSRID(4326);
-					}
+//					if (tmc.get("polyline") != null) {
+//						polyline = tmc.get("polyline").getAsString();
+//						polyline = polyline.replace(",", " ");
+//						polyline = polyline.replace(";", ",");
+//						WKTReader fromText = new WKTReader();
+//						geom = fromText.read("LINESTRING(" + polyline + ")");
+//						geom.setSRID(4326);
+//
+//					}
 					// 速度直接取step的速度
 					singleLink = new GdNavLinkNJ(batch,null,"tmc", tmcid, action, distance, -1L, speed, orientation, road,
 							linkStatus, insert_time, geom);

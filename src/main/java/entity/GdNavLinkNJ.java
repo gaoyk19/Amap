@@ -10,9 +10,14 @@ import javax.persistence.Table;
 
 import com.vividsolutions.jts.geom.Geometry;
 
+/**
+ * 存的是step导航段的信息
+ *
+ * */
 @Entity
 @Table(name = "GD_NAV_TRAFFIC_NJ")
 public class GdNavLinkNJ {
+
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
 	private Long seq;	
@@ -171,6 +176,9 @@ public class GdNavLinkNJ {
 		return polyline.toText().toString().hashCode();
 	}
 	@Override
+	/*
+	* 路段匹配，判断两个路段是否相同，主要比较polyline 与 orientation（方向）
+	* */
 	public boolean equals(Object o) {
 		GdNavLinkNJ p2 = (GdNavLinkNJ)o;
 		// 判定条件: 1.geom满足equals关系;2.方向相同
