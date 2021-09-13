@@ -51,8 +51,8 @@ private java.sql.Timestamp insert_time;
 
 		if (choose == 1) // 单线程
 			gdrun.runSingle();
-		if (choose == 2) // 多线程
-			gdrun.runMul(gdrun);
+//		if (choose == 2) // 多线程
+//			gdrun.runMul(gdrun);
 
 		JPAUtil.close();
 		System.out.println("main end..");
@@ -109,6 +109,7 @@ private java.sql.Timestamp insert_time;
 	}
 
 	// 运行--开了5个线程
+	/*
 	public void runMul(GetNav mulThread) throws InterruptedException {
 		// 获取所有request
 		links = getLinks();
@@ -128,7 +129,7 @@ private java.sql.Timestamp insert_time;
 		t4.join();
 		t5.join();
 	}
-
+	*/
 	// 运行--单线程
 	public void runSingle() throws Exception {
 		Session session = JPAUtil.getSession();

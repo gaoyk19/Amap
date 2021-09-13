@@ -34,7 +34,7 @@
 					  value="root" />
 <!--				value="你的登录账户" />-->
 			<!-- 数据库连接密码 -->
-			<property name="hibernate.connection.password" value="123456789" />
+			<property name="hibernate.connection.password" value="620" />
 
 			<!-- 数据库方言 -->
 <!--			<property name="spring.jpa.database" value="spring.jpa.database" />-->
