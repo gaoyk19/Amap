@@ -51,7 +51,7 @@ public class GetPathTest {
     //从数据库表 V_GD_NAV_ROAD 读取起点、终点、途径点
     public static List<Map> getLinks() {
         Session session = JPAUtil.getSession();
-        List<Object[]> objects = session.createSQLQuery("SELECT * FROM V_GD_NAV_ROAD").addScalar("s").addScalar("e")
+        List<Object[]> objects = session.createSQLQuery("SELECT * FROM V_GD_NAV_ROAD_1").addScalar("s").addScalar("e")
                 .addScalar("m").list();
         session.clear();
         session.close();
@@ -131,42 +131,52 @@ public class GetPathTest {
          System.out.println("第一条path中steps大小：" + steps.size() );
 
 /************************************************************************************************************/
-        //path中所有step的坐标点串,将它转化为起点，终点 存储到数据库中
-        {
-            Session sessionStartEnd = JPAUtil.getSession();
-            Transaction tx_StartEnd = sessionStartEnd.beginTransaction();
-
-            List<String> polyLineList=new ArrayList<>();
-            String res="";
-            for(int stepID=0;stepID<steps.size();++stepID) {
-                JsonObject step = steps.get(stepID).getAsJsonObject();
-                String polyline = step.get("polyline").getAsString();
-//               System.out.println(polyline);
-                String[] temp = polyline.split(";");
-                for (int i = 0; i < temp.length; ++i) {
-                    polyLineList.add(temp[i]);
-                }
-            }
-                System.out.println(polyLineList.size());
-            //需要保证 数组长度大小为偶数
-            int length=polyLineList.size();
-            if((length%2)==1)  length=length-1;
-                for(int pointIndex=0;pointIndex<length;pointIndex++){
-                    System.out.println(polyLineList.get(pointIndex)+" | "+polyLineList.get(pointIndex+1));
-                    start_end originEnd=new start_end(polyLineList.get(pointIndex),polyLineList.get(pointIndex+1));
-                    sessionStartEnd.save(originEnd);//将起点/终点存储到数据库中
-                }
-
-
-
-            System.out.println("第一条path中所有step导航段中的polyline："+polyLineList);
-
-            sessionStartEnd.flush();
-            sessionStartEnd.clear();
-            tx_StartEnd.commit();
-            sessionStartEnd.close();
-            JPAUtil.close();//必须要有
-        }
+//        //path中所有step的坐标点串,将它转化为起点，终点 存储到数据库中
+//        {
+//            Session sessionStartEnd = JPAUtil.getSession();
+//            Transaction tx_StartEnd = sessionStartEnd.beginTransaction();
+//
+//            List<String> polyLineList=new ArrayList<>();
+//            String res="";
+//            for(int stepID=0;stepID<steps.size();++stepID) {
+//                JsonObject step = steps.get(stepID).getAsJsonObject();
+//                String polyline = step.get("polyline").getAsString();
+////               System.out.println(polyline);
+//                System.out.println("-----------------------------------------------------------------------------------");
+//                String[] temp = polyline.split(";");
+//                for (int i = 0; i < temp.length; ++i) {
+//                    if(stepID!=0 && i==0) continue;
+//                    polyLineList.add(temp[i]);
+//                    System.out.println(temp[i]);
+//                }
+//            }
+//                System.out.println(polyLineList.size());
+//
+//            //save the start
+//            start_end realStart=new start_end("125.32591,43.855156",polyLineList.get(0));
+//            sessionStartEnd.save(realStart);
+//            System.out.println("125.32591,43.855156 | "+polyLineList.get(0));
+//
+//            int length=polyLineList.size();
+//            for(int pointIndex=0;pointIndex<length-1;pointIndex++){
+//                System.out.println(polyLineList.get(pointIndex)+" | "+polyLineList.get(pointIndex+1));
+//                start_end originEnd=new start_end(polyLineList.get(pointIndex),polyLineList.get(pointIndex+1));
+//                sessionStartEnd.save(originEnd);//将起点/终点存储到数据库中
+//            }
+//
+//            //save the start
+//            start_end realEnd=new start_end(polyLineList.get(polyLineList.size()-1),"125.28951,43.824303");
+//            sessionStartEnd.save(realEnd);
+//            System.out.println(polyLineList.get(polyLineList.size()-1)+" | 125.28951,43.824303");
+//
+////            System.out.println("第一条path中所有step导航段中的polyline："+polyLineList);
+//
+//            sessionStartEnd.flush();
+//            sessionStartEnd.clear();
+//            tx_StartEnd.commit();
+//            sessionStartEnd.close();
+//            JPAUtil.close();//必须要有
+//        }
 /************************************************************************************************************/
 
 
@@ -176,6 +186,7 @@ public class GetPathTest {
         pathID=id;
         distance = path.get("distance").getAsLong();
         duration = path.get("duration").getAsLong();
+        System.out.println("distance: "+distance+" ;duration: "+duration);
         speed = new Double(distance * 3.6 / duration).longValue();
         singlePath=new GdNaviLinkTest(pathID,distance,duration,speed);
         return singlePath;

@@ -5,10 +5,10 @@ import javax.persistence.*;
 @Entity
 @Table(name = "GD_NAV_TRAFFIC_Test")
 public class GdNaviLinkTest {
+//    @Id
+//    @GeneratedValue(strategy = GenerationType.AUTO)
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-//    private Long seq;
-//    private Long batch;
     private int pathID;
     private Long distance;
     private Long duration;
