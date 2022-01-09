@@ -15,6 +15,7 @@ import utils.HttpClientResult;
 import utils.HttpClientUtils;
 import utils.JPAUtil;
 
+import javax.sql.rowset.spi.SyncResolver;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -36,6 +37,8 @@ public class GetPathTest {
             System.out.println("get response:" + (i + 1) + "/" + links.size());
             // 发送http请求
             String content = getHttpReq(link);
+            if(content==null)
+                continue;
             path=parseContent(content);
             session.save(path);
         }
@@ -72,10 +75,11 @@ public class GetPathTest {
     //向高德地图发送http请求，得到http响应
     public static String getHttpReq(Map<String, Object> map) {
         String url = "https://restapi.amap.com/v3/direction/driving";
+        //String url = "https://restapi.amap.com/v5/direction/driving";
         Map<String, String> params = new HashMap<String, String>();
         params.put("key", "139a3f9066d939b983dc4a8dd6487578"); //这里需要修改申请得到的key
         params.put("extensions", "all");
-        params.put("strategy", "2"); // 10默认多路径;2单路径,距离最短
+        params.put("strategy", "5"); // 10默认多路径;2单路径,距离最短
         params.put("origin", (String) map.get("S"));
         params.put("destination", (String) map.get("E"));
         // 中途点
@@ -84,8 +88,13 @@ public class GetPathTest {
         HttpClientResult result;
         try {
             result = HttpClientUtils.doGet(url, params);
+//            result = HttpClientUtils.doPost(url, params);
+            System.out.println(result.getContent());
+
         } catch (Exception e) {
             System.out.println("访问接口出错了,忽略本次请求...");
+            System.out.println("S: "+(String) map.get("S")+"; E: "+(String) map.get("E"));
+
             return null;
         }
 
@@ -96,9 +105,12 @@ public class GetPathTest {
 
         return result.getContent();
     }
+
+
     //解析http返回的消息实体(即：response_example.json文件中的内容)
     public static GdNaviLinkTest parseContent(String content) throws ParseException {
         JsonParser parser = new JsonParser();
+        //System.out.println(content);
         JsonObject result = (JsonObject) parser.parse(content);
         // 导航是否成功,处理失败的情景
         int status = 0, count = 0;
@@ -114,80 +126,26 @@ public class GetPathTest {
             return null;
         }
 
-        // 有效导航,开始处理
-//        String orientation, road, action, polyline, linkStatus;
-//        Long tmcid, distance, duration, speed;
-
         int pathID;
-        Long distance;
-        Long duration;
-        Long speed;
+        Double distance;
+        Double duration;
+        Double speed;
         GdNaviLinkTest singlePath;
 
         JsonArray pathList = result.get("route").getAsJsonObject().get("paths").getAsJsonArray();//得到多条路线
         System.out.println("path的个数："+pathList.size());
 
         JsonArray steps = pathList.get(0).getAsJsonObject().get("steps").getAsJsonArray();
-         System.out.println("第一条path中steps大小：" + steps.size() );
-
-/************************************************************************************************************/
-//        //path中所有step的坐标点串,将它转化为起点，终点 存储到数据库中
-//        {
-//            Session sessionStartEnd = JPAUtil.getSession();
-//            Transaction tx_StartEnd = sessionStartEnd.beginTransaction();
-//
-//            List<String> polyLineList=new ArrayList<>();
-//            String res="";
-//            for(int stepID=0;stepID<steps.size();++stepID) {
-//                JsonObject step = steps.get(stepID).getAsJsonObject();
-//                String polyline = step.get("polyline").getAsString();
-////               System.out.println(polyline);
-//                System.out.println("-----------------------------------------------------------------------------------");
-//                String[] temp = polyline.split(";");
-//                for (int i = 0; i < temp.length; ++i) {
-//                    if(stepID!=0 && i==0) continue;
-//                    polyLineList.add(temp[i]);
-//                    System.out.println(temp[i]);
-//                }
-//            }
-//                System.out.println(polyLineList.size());
-//
-//            //save the start
-//            start_end realStart=new start_end("125.32591,43.855156",polyLineList.get(0));
-//            sessionStartEnd.save(realStart);
-//            System.out.println("125.32591,43.855156 | "+polyLineList.get(0));
-//
-//            int length=polyLineList.size();
-//            for(int pointIndex=0;pointIndex<length-1;pointIndex++){
-//                System.out.println(polyLineList.get(pointIndex)+" | "+polyLineList.get(pointIndex+1));
-//                start_end originEnd=new start_end(polyLineList.get(pointIndex),polyLineList.get(pointIndex+1));
-//                sessionStartEnd.save(originEnd);//将起点/终点存储到数据库中
-//            }
-//
-//            //save the start
-//            start_end realEnd=new start_end(polyLineList.get(polyLineList.size()-1),"125.28951,43.824303");
-//            sessionStartEnd.save(realEnd);
-//            System.out.println(polyLineList.get(polyLineList.size()-1)+" | 125.28951,43.824303");
-//
-////            System.out.println("第一条path中所有step导航段中的polyline："+polyLineList);
-//
-//            sessionStartEnd.flush();
-//            sessionStartEnd.clear();
-//            tx_StartEnd.commit();
-//            sessionStartEnd.close();
-//            JPAUtil.close();//必须要有
-//        }
-/************************************************************************************************************/
-
+        System.out.println("第一条path中steps大小：" + steps.size() );
 
 //        for(int id=0;id<pathList.size();++id){
         int id=0;
         JsonObject path = pathList.get(id).getAsJsonObject();
         pathID=id;
-        distance = path.get("distance").getAsLong();
-        duration = path.get("duration").getAsLong();
+        distance = path.get("distance").getAsDouble();
+        duration = path.get("duration").getAsDouble();
         System.out.println("distance: "+distance+" ;duration: "+duration);
-        speed = new Double(distance * 3.6 / duration).longValue();
+        speed = new Double(distance * 3.6 / duration).doubleValue();
         singlePath=new GdNaviLinkTest(pathID,distance,duration,speed);
         return singlePath;
 //    }
